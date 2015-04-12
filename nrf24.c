@@ -13,8 +13,18 @@
 */
 #include "nrf24.h"
 #include "USART.h"
+#include <avr/interrupt.h>
 
 uint8_t payload_len;
+
+
+
+void initInterrupts(void)
+{
+	EIMSK |= (1 << INT0);
+	EICRA |= ((0 << ISC00)||(1 << ISC01));//active low
+	sei();
+}
 
 /* Set the TX address */
 void nrf24_tx_address(uint8_t* adr)
@@ -101,13 +111,15 @@ void printRegister(const char* name, uint8_t registerN, uint8_t len, uint8_t sty
 
 
 /* configure the module */
-void nrf24_config(uint8_t channel, uint8_t pay_length)
+void nrf24_config(uint8_t channel, uint8_t pay_length, uint8_t retry)
 {
     /* Use static payload length ... */
     payload_len = pay_length;
 
     // Set RF channel
     nrf24_configRegister(RF_CH,channel);
+
+
 
     // Set length of incoming payload 
     //nrf24_configRegister(RX_PW_P0, 0x00); // Auto-ACK pipe ...
@@ -119,25 +131,30 @@ void nrf24_config(uint8_t channel, uint8_t pay_length)
     nrf24_configRegister(RX_PW_P5, payload_len); // Pipe not used 
 
     //TX gain: 0dbm
-    nrf24_configRegister(RF_SETUP, 0x03<<RF_PWR);
+    nrf24_configRegister(RF_SETUP, 0x11<<RF_PWR);
 
 	nrf24_speed(NRF24_250);
 
-    // CRC enable, 1 byte CRC length
-    nrf24_configRegister(CONFIG,nrf24_CONFIG);
+	if (retry)
+	{
 
-    // Auto Acknowledgment
-    //nrf24_configRegister(EN_AA,(0<<ENAA_P0)|(0<<ENAA_P1)|(0<<ENAA_P2)|(0<<ENAA_P3)|(0<<ENAA_P4)|(0<<ENAA_P5));
-	nrf24_configRegister(EN_AA,(1<<ENAA_P0)|(1<<ENAA_P1)|(1<<ENAA_P2)|(1<<ENAA_P3)|(1<<ENAA_P4)|(1<<ENAA_P5));
+		// Auto retransmit delay: 1000 us and Up to 15 retransmit trials
+		nrf24_configRegister(SETUP_RETR,(0x01<<ARD)|(0x05<<ARC));
 
-    // Enable RX addresses
-    nrf24_configRegister(EN_RXADDR,(1<<ERX_P0)|(1<<ERX_P1)|(1<<ERX_P2)|(1<<ERX_P3)|(1<<ERX_P4)|(1<<ERX_P5));
+		// CRC enable, 1 byte CRC length
+		nrf24_configRegister(CONFIG,nrf24_CONFIG);
 
-    // Auto retransmit delay: 1000 us and Up to 15 retransmit trials
-    nrf24_configRegister(SETUP_RETR,(0x04<<ARD)|(0x0F<<ARC));
+		// Auto Acknowledgment
+		//nrf24_configRegister(EN_AA,(0<<ENAA_P0)|(0<<ENAA_P1)|(0<<ENAA_P2)|(0<<ENAA_P3)|(0<<ENAA_P4)|(0<<ENAA_P5));
+		nrf24_configRegister(EN_AA,(1<<ENAA_P0)|(1<<ENAA_P1)|(1<<ENAA_P2)|(1<<ENAA_P3)|(1<<ENAA_P4)|(1<<ENAA_P5));
 
-    // Dynamic length configurations: No dynamic length
-    nrf24_configRegister(DYNPD,(0<<DPL_P0)|(0<<DPL_P1)|(0<<DPL_P2)|(0<<DPL_P3)|(0<<DPL_P4)|(0<<DPL_P5));
+		// Enable RX addresses
+		nrf24_configRegister(EN_RXADDR,(1<<ERX_P0)|(1<<ERX_P1)|(1<<ERX_P2)|(1<<ERX_P3)|(1<<ERX_P4)|(1<<ERX_P5));
+
+
+		// Dynamic length configurations: No dynamic length
+		nrf24_configRegister(DYNPD,(0<<DPL_P0)|(0<<DPL_P1)|(0<<DPL_P2)|(0<<DPL_P3)|(0<<DPL_P4)|(0<<DPL_P5));
+	}
 
     // Start listening
     nrf24_powerUpRx();
@@ -218,6 +235,15 @@ uint8_t nrf24_retransmissionCount()
     return rv;
 }
 
+/* Returns the number of lost packets */
+uint8_t nrf24_totalLostPacketCount()
+{
+    uint8_t rv;
+    nrf24_readRegister(OBSERVE_TX,&rv,1);
+    rv = rv & 0xF0;
+    return rv;
+}
+
 // Sends a data package to the default address. Be sure to send the correct
 // amount of bytes as configured as payload on the receiver.
 void nrf24_send(uint8_t* value) 
@@ -274,6 +300,27 @@ uint8_t nrf24_isSending()
                 
     /* if sending successful (TX_DS) or max retries exceded (MAX_RT). */
     if((status & ((1 << TX_DS)  | (1 << MAX_RT))))
+    {
+		//printString("5...\r\n");            
+        return 0; /* false */
+		
+    }
+		//printString("6...\r\n");            
+    return 1; /* true */
+
+}
+
+uint8_t nrf24_isSendingWithoutRetry()
+{
+    uint8_t status;
+
+	//printString("4...\r\n");    
+
+    /* read the current status */
+    status = nrf24_getStatus();
+                
+    /* if sending successful (TX_DS) or max retries exceded (MAX_RT). */
+    if(status & (1 << TX_DS))
     {
 		//printString("5...\r\n");            
         return 0; /* false */

@@ -11,6 +11,7 @@
 #include "nrf24.h"
 #include <util/delay.h>
 #include "USART.h"
+#include <avr/interrupt.h>
 /* ------------------------------------------------------------------------- */
 uint8_t rx_address1[5] = {0xE7,0xE7,0xE7,0xE7,0xE7};
 uint8_t rx_address2[5] = {0xC2,0xC2,0xC2,0xC2,0xC2};
@@ -19,7 +20,7 @@ uint8_t rx_address4[1] = {0xE4};
 uint8_t rx_address5[1] = {0xF5};
 uint8_t rx_address6[1] = {0xA6};
 
-
+int received = 0;
 
 /**
 
@@ -44,7 +45,40 @@ void flash(int count, int delay)
 
 }
 
+ISR(INT0_vect){	
 
+	uint8_t rv = nrf24_getStatus();
+	
+	//if (!rv){
+	//printString("[int]Zero status received!\r\n");
+	//}
+    /* Transmission went OK */
+    if((rv & ((1 << TX_DS))))
+    {
+		//printString("[int]Transmission ok!\r\n");
+		//uint8_t toWrite = _BV(TX_DS);
+		//reset
+		//nrf24_writeRegister(STATUS, &toWrite, 1);
+		//++success;
+		//ready = 1;
+    } else if (rv & (1 << MAX_RT)){
+		//printString("[int]Max retries exceeded!\r\n");
+		//uint8_t toWrite = _BV(MAX_RT);
+		//reset
+		//nrf24_writeRegister(STATUS, &toWrite, 1);
+		//++fail;
+		//ready = 1;
+	} else if (rv & (1 << RX_DR)){
+		//printString("[int]Message received!\r\n");
+		//uint8_t toWrite = _BV(RX_DR);
+		//reset
+		//nrf24_writeRegister(STATUS, &toWrite, 1);
+		//++received;
+	}	
+	//if (rv && received % 100 == 0){
+		//printString(".");
+	//}
+}
 
 int main(void)
 {
@@ -52,11 +86,13 @@ int main(void)
 
 	DDRB |= (1 << PB2); //enable writing on PB2 for LED
 
+	initInterrupts();
+	
 	printString("\r\n> RX device ready\r\n");
 	/* init hardware pins */
 	nrf24_init();
-	/* Channel #2 , payload length: 4 */
-	nrf24_config(2,4);
+
+	nrf24_config(2,1,1);
 
 
 	/* Set the device addresses */
@@ -82,7 +118,7 @@ int main(void)
 	printRegister("CONFIG:",CONFIG,1,1);
 	printRegister("RF_SETUP:",RF_SETUP,1,1);
 
-	uint8_t data_array[4];
+	uint8_t data_array[1];
 
 	while(1)
 	{
@@ -90,12 +126,16 @@ int main(void)
 		{
 			//count=0;
 			nrf24_getData(data_array);
-			flash(1,200);
-			printString("> ");
-			printByte(data_array[0]);printString(",");
-			printByte(data_array[1]);printString(",");
-			printByte(data_array[2]);printString(",");
-			printByte(data_array[3]);printString("\r\n");
+			++received;
+			//flash(1,200);
+			//printString("> ");
+			//printByte(data_array[0]);printString("\r\n");
+			//printByte(data_array[1]);printString(",");
+			//printByte(data_array[2]);printString(",");
+			//printByte(data_array[3]);printString("\r\n");
+			if (received % 10 == 0){
+				printString(".");
+			}
 		}
 		//_delay_ms(100);
 	}

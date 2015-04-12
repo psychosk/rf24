@@ -32,12 +32,13 @@
 #define NRF24_1000 1
 #define NRF24_2000 2
 
+extern void    initInterrupts(void);
 
 /* adjustment functions */
 extern void    nrf24_init(void);
 extern void    nrf24_rx_address(uint8_t* adr, uint8_t pipeNumber);
 extern void    nrf24_tx_address(uint8_t* adr);
-extern void    nrf24_config(uint8_t channel, uint8_t pay_length);
+extern void    nrf24_config(uint8_t channel, uint8_t pay_length, uint8_t retry);
 
 extern void    nrf24_speed(uint8_t speed);
 
@@ -45,6 +46,7 @@ extern void    nrf24_speed(uint8_t speed);
 /* state check functions */
 extern uint8_t nrf24_dataReady(void);
 extern uint8_t nrf24_isSending(void);
+extern uint8_t nrf24_isSendingWithoutRetry(void);
 extern uint8_t nrf24_getStatus(void);
 extern uint8_t nrf24_rxFifoEmpty(void);
 
@@ -58,6 +60,7 @@ extern uint8_t nrf24_payloadLength(void);
 /* post transmission analysis */
 extern uint8_t nrf24_lastMessageStatus(void);
 extern uint8_t nrf24_retransmissionCount(void);
+extern uint8_t nrf24_totalLostPacketCount(void);
 
 /* Returns the payload length */
 extern uint8_t nrf24_payload_length(void);
