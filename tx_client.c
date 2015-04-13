@@ -7,7 +7,9 @@
  * -----------------------------------------------------------------------------
  */
 
+#include <stdio.h>
 #include <avr/io.h>
+
 //#include <stdint.h>
 #include "nrf24.h"
 #include <util/delay.h>
@@ -42,6 +44,8 @@ volatile uint8_t ready = 1;
 volatile unsigned long timer1_millis;
 volatile unsigned long timeOfLastTransmission;
 
+void sleep(int);
+
 void flash(int count, int delay) {
 	for (int i = 0; i < count; ++i) {
 		PORTB |= (1 << PB2);
@@ -64,17 +68,10 @@ void sleep(int delay) {
 ISR (TIMER1_COMPA_vect) {
 	timer1_millis++;
 	if (timer1_millis % 1000 == 0) {
-		printWord(sent[0]);
-		printString(",");
-		printWord(success[0]);
-		printString(",");
-		printWord(fail[0]);
-		printString(",");
-		printWord(latency[0]);
-		printString(",");
-		double avgLatency = latency[0] / success[0];
-		printWord(avgLatency);
-		printString("\r\n");
+		//printf("Hello!");
+		double avgLatency = ((double)latency[0])/((float)success[0]);
+		printf("Sent:%i,Succeed:%i,Fail:%i,Total Latency:%i,Avg Latency:%03.2f\r\n",sent[0],success[0],fail[0],latency[0],avgLatency);
+		//printString("\r\n");
 		//printString("Seconds:");printWord(timer1_millis/1000);printString("\r\n");
 		sent[0] = 0;
 		fail[0] = 0;
@@ -115,11 +112,16 @@ ISR(INT0_vect) {
 	}
 }
 
+static FILE mystdout = FDEV_SETUP_STREAM(transmitByte, NULL, _FDEV_SETUP_WRITE);
+
+
+
 /* ------------------------------------------------------------------------- */
 int main(void) {
 
 	int transmitterNumber = 0;
 
+	stdout = &mystdout;
 	initUSART();
 	DDRB |= (1 << PB2); //enable writing on PB2 for LED
 

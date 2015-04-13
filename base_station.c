@@ -1,6 +1,6 @@
 /*
 * ----------------------------------------------------------------------------
-* “THE COFFEEWARE LICENSE” (Revision 1):
+* ï¿½THE COFFEEWARE LICENSEï¿½ (Revision 1):
 * <ihsan@kehribar.me> wrote this file. As long as you retain this notice you
 * can do whatever you want with this stuff. If we meet some day, and you think
 * this stuff is worth it, you can buy me a coffee in return.
@@ -20,7 +20,7 @@ uint8_t rx_address4[1] = {0xE4};
 uint8_t rx_address5[1] = {0xF5};
 uint8_t rx_address6[1] = {0xA6};
 
-int received = 0;
+volatile int received = 0;
 
 /**
 
@@ -30,16 +30,22 @@ int received = 0;
 
 /* ------------------------------------------------------------------------- */
 
+void sleep(int delay) {
+	for (int i = 0; i < delay; ++i)
+		_delay_ms(1);
+}
+
+
 void flash(int count, int delay)
 {
 	for (int i = 0; i < count; ++i)
 	{
 		PORTB |= (1 << PB2);
-		_delay_ms(delay);
+		sleep(delay);
 		PORTB &= ~(1 << PB2);
 		if (i < (count-1))
 		{
-			_delay_ms(delay);
+			sleep(delay);
 		}
 	}
 
