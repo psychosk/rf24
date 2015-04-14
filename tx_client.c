@@ -15,6 +15,7 @@
 #include <util/delay.h>
 #include "USART.h"
 #include <avr/interrupt.h>
+//#include "lcd.h"
 
 //#define F_CPU 16000000UL // 16 MHz
 
@@ -69,7 +70,7 @@ ISR (TIMER1_COMPA_vect) {
 	timer1_millis++;
 	if (timer1_millis % 1000 == 0) {
 		//printf("Hello!");
-		double avgLatency = ((double)latency[0])/((float)success[0]);
+		double avgLatency = ((double)latency[0])/((float)success[0] + (float)fail[0]);
 		printf("Sent:%i,Succeed:%i,Fail:%i,Total Latency:%i,Avg Latency:%03.2f\r\n",sent[0],success[0],fail[0],latency[0],avgLatency);
 		//printString("\r\n");
 		//printString("Seconds:");printWord(timer1_millis/1000);printString("\r\n");
@@ -102,6 +103,7 @@ ISR(INT0_vect) {
 		//reset
 		//nrf24_writeRegister(STATUS, &toWrite, 1);
 		++fail[0];
+		latency[0] += (timer1_millis - timeOfLastTransmission);
 		//timeOfLastTransmission = 0;
 		ready = 1;
 	} else if (rv & (1 << RX_DR)) {
@@ -137,6 +139,15 @@ int main(void) {
 	TIMSK1 |= (1 << OCIE1A);
 
 	initInterrupts();
+
+	//Initialize LCD module
+	   //LCDInit(LS_BLINK|LS_ULINE);
+
+	   //Clear the screen
+	   //LCDClear();
+
+	   //Simple string printing
+	   //LCDWriteString("Congrats ");
 
 	/* simple greeting message */
 	printString("\r\n> TX device ready\r\n");

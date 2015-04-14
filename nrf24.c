@@ -139,7 +139,7 @@ void nrf24_config(uint8_t channel, uint8_t pay_length, uint8_t retry)
 	{
 
 		// Auto retransmit delay: 1000 us and Up to 15 retransmit trials
-		nrf24_configRegister(SETUP_RETR,(0x01<<ARD)|(0x05<<ARC));
+		nrf24_configRegister(SETUP_RETR,(0x15<<ARD)|(0x15<<ARC));
 
 		// CRC enable, 1 byte CRC length
 		nrf24_configRegister(CONFIG,nrf24_CONFIG);

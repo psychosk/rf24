@@ -15,7 +15,7 @@ MAIN = tx_client.c
 
 ## If you've split your program into multiple .c / .h files, 
 ## include the additional source (in same directory) here 
-LOCAL_SOURCE = USART.c nrf24.c radioPinFunctions.c
+LOCAL_SOURCE = USART.c nrf24.c radioPinFunctions.c #lcd.c
 
 ## Here you can link to one more directory (and multiple .c files)
 #EXTRA_SOURCE_DIR = D:\WinAVR\avr\include\tinkerer
